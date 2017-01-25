@@ -1,0 +1,26 @@
+---
+title: "Biomarker: Exploratory Analysis"
+output: html_notebook
+---
+
+Read in the two data files that have bold signal values for all subjects four values each of frequency and voltage. The columns in each dataset are somewhat different.
+
+```{r data read, message=FALSE, warning=FALSE}
+data <- sapply(
+  list.files(
+    file.path(
+      "/Users/trentonjerde/ds_stuff/projects/biomarker", "data"
+    ), 
+    pattern = "bold", full.names = TRUE
+  ), 
+  read_csv
+)
+
+data.freq <-
+  data[[1]]
+
+data.volt <-
+  data[[2]]
+
+rm(data)
+```
