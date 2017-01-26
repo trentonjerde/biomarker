@@ -24,3 +24,66 @@ data.volt <-
 
 rm(data)
 ```
+
+```{r column properties}
+# multi.fun <- function(x) {
+#   c(min = min(x), mean = mean(x), max = max(x))
+# }
+
+m.sapply <- function(...) {
+  arglist <- match.call(expand.dots = FALSE)$...
+  var.names <- sapply(arglist, deparse)
+  has.name <- (names(arglist) != "")
+  var.names[has.name] <- names(arglist)[has.name]
+  arglist <- lapply(arglist, eval.parent, n = 2)
+  x <- arglist[[1]]
+  arglist[[1]] <- NULL
+  result <- sapply(arglist, function (FUN, x) sapply(x, FUN), x)
+  colnames(result) <- var.names[-1]
+  return(result)
+}
+
+p.cpl <- function(x) {
+  round(sum(!is.na(x)) / length(x) * 100, 1)
+}
+n.unq <- function(x) {
+  length(unique(x))
+}
+mn <- function(x) {
+  if (class(data.freq$run1) %in% c("numeric", "integer")) {
+    return(round(min(x, na.rm = TRUE), 1))
+  } else {
+    return(NA)
+  }
+}
+med <- function(x) {
+  if (class(data.freq$run1) %in% c("numeric", "integer")) {
+    return(round(median(x, na.rm = TRUE), 1))
+  } else {
+    return(NA)
+  }
+}
+mx <- function(x) {
+  if (class(data.freq$run1) %in% c("numeric", "integer")) {
+    return(round(max(x, na.rm = TRUE), 1))
+  } else {
+    return(NA)
+  }
+}
+
+col.prop <- function(x) {
+  res <- as.data.frame(
+    m.sapply(x, p.compl, n.unq, class, mn, med, mx)
+  )
+  res <- res %>% 
+    mutate(col = rownames(res)) %>% 
+    select(col, everything())
+  name <- paste0(deparse(substitute(x)), "_col.csv")
+  print(name)
+  write_csv(res, name)
+}
+
+col.prop(data.freq)
+col.prop(data.volt)
+```
+

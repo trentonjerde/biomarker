@@ -1,0 +1,16 @@
+col,p.compl,n.unq,class,mn,med,mx
+﻿subj,100,3,integer,76,635,985
+area,100,4,integer,1,2.5,4
+dbsOnOff,100,2,integer,1,1,2
+block,100,6,integer,1,3,6
+contact,100,3,integer,1,2,3
+voltage,100,3,integer,3,4,7
+freq,100,4,integer,5,75,180
+run1,100,8640,numeric,1691,12494.4,38914.1
+run2,100,8640,numeric,1284.1,12231.1,39016.2
+run3,100,8640,numeric,4912.4,11964.7,38752.7
+run4,87.5,7561,numeric,4723.8,11182.2,37412.6
+run5,81.2,7021,numeric,1923.9,10966.1,38367.7
+run6,73.4,6346,numeric,2259.2,10837.8,37587.7
+run7,32.8,2836,numeric,1225.6,6775.7,11846.8
+run8,25,2161,numeric,1258.7,6420.4,11005.5
