@@ -11,9 +11,9 @@ data <- sapply(
     file.path(
       "/Users/trentonjerde/ds_stuff/projects/biomarker", "data"
     ), 
-    pattern = "bold", full.names = TRUE
+    pattern = "data_", full.names = TRUE
   ), 
-  read_csv
+  read.csv
 )
 
 data.freq <-
@@ -73,7 +73,7 @@ mx <- function(x) {
 
 col.prop <- function(x) {
   res <- as.data.frame(
-    m.sapply(x, p.compl, n.unq, class, mn, med, mx)
+    m.sapply(x, p.cpl, n.unq, class, mn, med, mx)
   )
   res <- res %>% 
     mutate(col = rownames(res)) %>% 
@@ -85,5 +85,39 @@ col.prop <- function(x) {
 
 col.prop(data.freq)
 col.prop(data.volt)
+
+rm(col.prop, m.sapply, med, mn, mx, n.unq, p.cpl)
+
+# write_feather(data.freq, "data.freq.feather")
+data.freq <- read_feather("data.freq.feather")
+# write_feather(data.volt, "data.volt.feather")
+data.volt <- read_feather("data.volt.feather")
 ```
 
+```{r data}
+data.freq <-
+  data.freq %>% 
+  mutate(group = "frequency")
+
+data.volt <- 
+  data.volt %>% 
+  rename(voltage = volt) %>% 
+  mutate(freq = 130L) %>% 
+  mutate(group = "voltage")
+
+data <- 
+  bind_rows(
+    data.freq, 
+    select_(data.volt, .dots = names(data.freq))
+  ) %>% 
+  select(group, everything()) %>% 
+  rename(dbs = dbsOnOff) %>% 
+  mutate(dbs = if_else(dbs == 2, 0, 1))
+
+data <-
+  data %>%
+  gather(run, bold, run1:run8) %>% 
+  mutate(run = as.integer(substr(run, 4, 4)))
+
+rm(data.freq, data.volt)
+```
