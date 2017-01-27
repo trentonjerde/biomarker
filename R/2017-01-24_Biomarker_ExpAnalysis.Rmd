@@ -121,3 +121,18 @@ data <-
 
 rm(data.freq, data.volt)
 ```
+
+```{r}
+plot.data <- 
+  data %>% 
+  mutate(dbs = as.factor(dbs)) %>% 
+  filter(group == "voltage") %>% 
+  filter(subj == 635 & area == 1 & contact == 2 & voltage == 3)
+
+ggplot(plot.data, aes(x = bold)) +
+  geom_density(
+    aes(group = dbs, colour = dbs, fill = dbs),
+    alpha = 0.3
+  )
+```
+
