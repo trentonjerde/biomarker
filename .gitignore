@@ -36,3 +36,6 @@ vignettes/*.pdf
 # Data files
 /data/
 *.Rproj
+
+~*.xlsx
+~*.docx
