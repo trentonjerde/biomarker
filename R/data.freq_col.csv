@@ -1,4 +1,4 @@
-col,p.cpl,n.unq,class,mn,med,mx
+col,CalcPercComp,CalcNUnq,class,CalcMin,CalcMedian,CalcMax
 subj,100,3,integer,76,635,985
 area,100,4,integer,1,2.5,4
 dbsOnOff,100,2,integer,1,1,2

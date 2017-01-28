@@ -5,7 +5,23 @@ output: html_notebook
 
 Read in the two data files that have bold signal values for all subjects four values each of frequency and voltage. The columns in each dataset are somewhat different.
 
+```{r packages, message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(readr)
+library(feather)
+```
+
+
 ```{r data read, message=FALSE, warning=FALSE}
+# Read the two csv's for MRI data
+# Note that these two files were changed slightly from the original files and
+# saved as data_frequency.csv and data_voltage.csv, from originals of
+# bold_4freq_3subs.csv and bold_4volt_3subs.csv
+# Would prefer to use readr::read_csv, but it makes a funny name for the first
+# column (subj), so using read.csv instead (these are relatively small files so
+# they read quickly)
 data <- sapply(
   list.files(
     file.path(
@@ -15,22 +31,22 @@ data <- sapply(
   ), 
   read.csv
 )
-
+# Have confirmed that these match what's in the files
 data.freq <-
   data[[1]]
-
 data.volt <-
   data[[2]]
 
 rm(data)
 ```
 
-```{r column properties}
-# multi.fun <- function(x) {
-#   c(min = min(x), mean = mean(x), max = max(x))
-# }
 
-m.sapply <- function(...) {
+```{r column properties}
+# Basically taken as-is from online sources, so that can feed many different
+# functions into an sapply and get something back
+# Use this to get many properties of columns so that can start to organize
+# analyses around them
+Multi.Sapply <- function(...) {
   arglist <- match.call(expand.dots = FALSE)$...
   var.names <- sapply(arglist, deparse)
   has.name <- (names(arglist) != "")
@@ -43,27 +59,33 @@ m.sapply <- function(...) {
   return(result)
 }
 
-p.cpl <- function(x) {
+# Percent complete: the proportion of x that's not NA
+CalcPercComp <- function(x) {
   round(sum(!is.na(x)) / length(x) * 100, 1)
 }
-n.unq <- function(x) {
+# NUnq: the number of unique values for a given x
+CalcNUnq <- function(x) {
   length(unique(x))
 }
-mn <- function(x) {
+# Min: rounded min with a check to make sure it's numeric or integer
+# If x is not, then gives NA
+CalcMin <- function(x) {
   if (class(data.freq$run1) %in% c("numeric", "integer")) {
     return(round(min(x, na.rm = TRUE), 1))
   } else {
     return(NA)
   }
 }
-med <- function(x) {
+# Median: rounded median, with properties similar to CalcMin
+CalcMedian <- function(x) {
   if (class(data.freq$run1) %in% c("numeric", "integer")) {
     return(round(median(x, na.rm = TRUE), 1))
   } else {
     return(NA)
   }
 }
-mx <- function(x) {
+# Max: rounded max, with properties similar to CalcMin
+CalcMax <- function(x) {
   if (class(data.freq$run1) %in% c("numeric", "integer")) {
     return(round(max(x, na.rm = TRUE), 1))
   } else {
@@ -71,9 +93,14 @@ mx <- function(x) {
   }
 }
 
-col.prop <- function(x) {
+# Wrapper function to apply the multi-sapply to describe all columns of a
+# dataset and name a csv after it, then write that out so it can be imported
+# into an Excel spreadsheet
+DescribeDataCols <- function(x) {
   res <- as.data.frame(
-    m.sapply(x, p.cpl, n.unq, class, mn, med, mx)
+    Multi.Sapply(
+      x, 
+      CalcPercComp, CalcNUnq, class, CalcMin, CalcMedian, CalcMax)
   )
   res <- res %>% 
     mutate(col = rownames(res)) %>% 
@@ -82,29 +109,43 @@ col.prop <- function(x) {
   print(name)
   write_csv(res, name)
 }
+# Apply the description function to both datasets and save results as csv
+DescribeDataCols(data.freq)
+DescribeDataCols(data.volt)
 
-col.prop(data.freq)
-col.prop(data.volt)
+write_feather(data.freq, "data.freq.feather")
+# data.freq <- read_feather("data.freq.feather")
+write_feather(data.volt, "data.volt.feather")
+# data.volt <- read_feather("data.volt.feather")
 
-rm(col.prop, m.sapply, med, mn, mx, n.unq, p.cpl)
-
-# write_feather(data.freq, "data.freq.feather")
-data.freq <- read_feather("data.freq.feather")
-# write_feather(data.volt, "data.volt.feather")
-data.volt <- read_feather("data.volt.feather")
+# Cleanup
+rm(
+  DescribeDataCols, Multi.Sapply, CalcMedian, CalcMin, 
+  CalcMax, CalcNUnq, CalcPercComp
+)
 ```
 
-```{r data}
+
+```{r data to organized single}
+# (1) Mutate which dataset they come from (only two options since two datasets)
+# (2) Mutate freq, since same frequency was used for all voltage experiments
+# (130 volts), using that
+# (3) Rename the voltage column in the voltage dataset from volt to voltage so
+# that it matches the naming conventions in the frequency dataset
 data.freq <-
   data.freq %>% 
   mutate(group = "frequency")
-
 data.volt <- 
   data.volt %>% 
   rename(voltage = volt) %>% 
   mutate(freq = 130L) %>% 
   mutate(group = "voltage")
-
+# (1) Order the columns of data.volt so that they match those of data.freq
+# (haven't confirmed that these need to line-up and it seems like that could be
+# worked out for some approaches to consolidating data; TODO: check this)
+# (2) Reorder columns of the full data so that group (freq or volt) is first 
+# column and all others follow
+# (3) Rename dbs flag and change is to that it's coded as 0 (off) and 1 (on)
 data <- 
   bind_rows(
     data.freq, 
@@ -113,16 +154,20 @@ data <-
   select(group, everything()) %>% 
   rename(dbs = dbsOnOff) %>% 
   mutate(dbs = if_else(dbs == 2, 0, 1))
-
+# (1) Convert all run columns (which are BOLD values) into a single column and
+# arrange them on key-value pairs of run and bold
+# (2) For the column that indicates the run, take the last value in the string
+# and convert this to integer (e.g., "run1" to 1L)
 data <-
   data %>%
   gather(run, bold, run1:run8) %>% 
   mutate(run = as.integer(substr(run, 4, 4)))
-
+# Cleanup
 rm(data.freq, data.volt)
 ```
 
-```{r}
+
+```{r plot 1: density for on and off}
 plot.data <- 
   data %>% 
   mutate(dbs = as.factor(dbs)) %>% 
