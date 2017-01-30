@@ -1,4 +1,9 @@
 library(shiny)
+library(dplyr)
+library(ggplot2)
+# library(tidyr)
+# library(readr)
+library(feather)
 data.file <- file.path(
   "/Users/trentonjerde/ds_stuff/projects/biomarker/shiny_biomarker/data",
   "data.shiny.feather"
