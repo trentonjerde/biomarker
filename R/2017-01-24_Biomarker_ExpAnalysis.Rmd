@@ -37,7 +37,7 @@ data.freq <-
 data.volt <-
   data[[2]]
 
-rm(data)
+# rm(data)
 ```
 
 
@@ -167,17 +167,57 @@ rm(data.freq, data.volt)
 ```
 
 
-```{r plot 1: density for on and off}
-plot.data <- 
-  data %>% 
-  mutate(dbs = as.factor(dbs)) %>% 
-  filter(group == "voltage") %>% 
-  filter(subj == 635 & area == 1 & contact == 2 & voltage == 3)
+<!-- ```{r plot 1: density for on and off} -->
+<!-- plot.data <-  -->
+<!--   data %>%  -->
+<!--   mutate(dbs = as.factor(dbs)) %>%  -->
+<!--   filter(group == "voltage") %>%  -->
+<!--   filter(subj == 635 & area == 1 & contact == 2 & voltage == 3) -->
 
-ggplot(plot.data, aes(x = bold)) +
-  geom_density(
-    aes(group = dbs, colour = dbs, fill = dbs),
-    alpha = 0.3
+<!-- ggplot(plot.data, aes(x = bold)) + -->
+<!--   geom_density( -->
+<!--     aes(group = dbs, colour = dbs, fill = dbs), -->
+<!--     alpha = 0.3 -->
+<!--   ) -->
+<!-- ``` -->
+
+
+```{r}
+std.err <- function(x) sd(x)/sqrt(length(x))
+
+data.shiny <- 
+  data %>% filter(group != "frequency")
+write_feather(data.shiny, "data.shiny.feather")
+
+data.tmp <- data %>% 
+  filter(
+    group == "voltage" & 
+     subj == 76
+  ) %>% 
+  filter(
+    area %in% 1:4
   )
-```
+data.tmp <- data.tmp %>% 
+  group_by(area, contact, voltage, run, block) %>% 
+  summarise(
+    bold.avg = mean(bold), 
+    dbs.val = unique(dbs)
+  )
+data.tmp <- data.tmp %>% 
+  mutate(
+    res = 
+      (lag(bold.avg) - bold.avg) / 
+      mean(c(lag(bold.avg), bold.avg), na.rm = TRUE) * 
+      100
+  ) %>% 
+  filter(dbs.val == 0)
+data.tmp <- data.tmp %>% 
+  group_by(area, contact, voltage, run) %>% 
+  mutate(pair = 1:n()) %>% 
+  select(area, contact, voltage, run, pair, res)
+data.tmp <- data.tmp %>% 
+  group_by(area, contact, voltage) %>% 
+  summarise(res.avg = mean(res, na.rm = TRUE), res.sem = std.err((res)))
 
+ggplot(koo, aes(area, res.avg, ymin = res.avg - res.sem, ymax = res.avg + res.sem)) + geom_bar(stat = "identity") + geom_linerange() + facet_grid(contact ~ voltage) + theme_minimal()
+```
